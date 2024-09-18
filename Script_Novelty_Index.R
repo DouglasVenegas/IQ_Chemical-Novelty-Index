@@ -13,7 +13,7 @@ library(writexl)
 ### la extracción de datos por cepa (en este caso) utiliza un comando específico para este .graphML, 
 ### se debe adaptar para otros muestras, si la muestra tiene un atributo único entonces se puede utilizar la metadata
 ### pero hay que pensar como adapatarlo de forma general
-
+##########################################
 
 # Load network from a GraphML file
 graphml <-  read_graph("network.graphml", format = "graphml")
