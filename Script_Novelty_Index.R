@@ -221,6 +221,15 @@ for(sample_name in unique(df_separated$UniqueFileSources)) {
   ))
 }
 
+
+
+
+
+
+
+
+
+
 # Merge the IQ_Summary with df_conteo based on the Sample and Var1 columns
 IQ_Summary <- merge(IQ_Summary, df_conteo, by.x = "Sample", by.y = "Var1", all.x = TRUE)
 
