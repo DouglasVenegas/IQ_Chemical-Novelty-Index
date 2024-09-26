@@ -363,13 +363,13 @@ vector_nombres <- c(
 )
 
 # Filter the data based on the sample names vector
-IQ_filtrado <- IQ_Summary %>%
+IQ_filtrated <- IQ_Summary %>%
   filter(Sample %in% vector_nombres)
 
-IQ_filtrado <- IQ_filtrado %>%
+IQ_filtrated <- IQ_filtrated %>%
   mutate(Strain = sub("-.*", "", Sample))
 
-IQ_filtrado <- IQ_filtrado %>%
+IQ_filtrado <- IQ_filtrated %>%
   separate(Sample, into = c("Strain", "replica", "solvent_mzXML"), sep = "-", remove = FALSE) %>%
   separate(solvent_mzXML, into = c("solvent", "extension"), sep = "\\.", remove = FALSE) %>%
   select(-extension, -replica, -solvent_mzXML) 
