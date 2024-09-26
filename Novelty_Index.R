@@ -1,6 +1,5 @@
 if (!require("pacman")) install.packages("pacman") #Installing pacman if not present
-pacman::p_load("tidyverse","dplyr","tidyr","igraph","visNetwork", "readr","ggplot2", "ggraph", "graphTweets", "xmls", "writexl")
-
+pacman::p_load("tidyverse", "readxl", "rvest","dplyr","tidyr","igraph","visNetwork", "readr","ggplot2", "ggraph", "graphTweets", "xmls", "writexl")
 
 # Load network from a GraphML file
 graphml <-  read_graph("network_Crusemann.graphml", format = "graphml")
@@ -50,7 +49,7 @@ score_COS <- combined_interactions %>%
 BASE <- merge(score_MSQ, score_COS, by.x = "id", by.y = "nodeA", all = TRUE) # Note that the MQS value is repeated when there is more than one COS, which is exactly what was sought
 
 
-# Retrieving the third parameter, number of unannotated nodes
+########################## Retrieving the third parameter, number of unannotated nodes
 score_no_MSQ <- df_nodes %>%
   select(id, MQScore, UniqueFileSources) %>%
   filter(is.na(MQScore) | MQScore == "")%>%
@@ -62,7 +61,7 @@ df_nodes_unannotated <- score_no_MSQ %>%
 
 # Count id per sample
 count <- table(df_nodes_unannotated$UniqueFileSources)
-df_count<- as.data.frame(conteo)
+df_count<- as.data.frame(count)
 total_freq <- sum(df_count$Freq)
 
 # Calculate the percentage of each frequency
@@ -71,35 +70,28 @@ df_count$Percentage <- (df_count$Freq / total_freq)*100 # is maintained in perce
 df_count <- df_count %>% select(-Freq)
 
 ######Shannon index for MQS y Cos
-
+# Verificar si el directorio existe, si no, crearlo
 if (!dir.exists("CSV_IQ")) {
   dir.create("CSV_IQ")
 }
 
-
-# Merge dataframes by id
-BASE <- merge(score_MSQ, score_COS, by.x = "id", by.y = "nodeA", all = TRUE)
-
-# Split samples and extend the dataframe
+# Separar las muestras y extender el dataframe
 df_separated <- BASE %>%
   separate_rows(UniqueFileSources, sep = "\\|") %>%
   group_by(UniqueFileSources)
 
-
-# Define the strata
-
+# Definir los estratos para MQScore
 MQS_breaks <- seq(0.01, 1, by = 0.05)
 strata_MQS <- setNames(
-  lapply(seq_along(MQS_breaks)[-length(MQS_breaks)], function(i) c(MQS_breaks[i], MQS_breaks[i+1])),
-  paste0(sprintf("%.2f", MQS_breaks[-length(MQS_breaks)]), "-", sprintf("%.2f", MQS_breaks[-1]))
-)
+  lapply(seq_along(MQS_breaks)[-length(MQS_breaks)], function(i) c(MQS_breaks[i], MQS_breaks[i + 1])),
+  paste0(sprintf("%.2f", MQS_breaks[-length(MQS_breaks)]), "-", sprintf("%.2f", MQS_breaks[-1])))
 
-# Define the strata for COS
+
+# Definir los estratos para el puntaje del coseno
 cos_breaks <- seq(0.70, 1.00, by = 0.05)
 strata_COS <- setNames(
-  lapply(seq_along(cos_breaks)[-length(cos_breaks)], function(i) c(cos_breaks[i], cos_breaks[i+1])),
-  paste0(sprintf("%.2f", cos_breaks[-length(cos_breaks)]), "-", sprintf("%.2f", cos_breaks[-1]))
-)
+  lapply(seq_along(cos_breaks)[-length(cos_breaks)], function(i) c(cos_breaks[i], cos_breaks[i + 1])),
+  paste0(sprintf("%.2f", cos_breaks[-length(cos_breaks)]), "-", sprintf("%.2f", cos_breaks[-1])))
 
 # Function to stratify and count values, ignoring NAs
 stratify_and_count <- function(df, column, strata) {
@@ -109,81 +101,79 @@ stratify_and_count <- function(df, column, strata) {
   return(counts)
 }
 
-# Function to stratify and count unique values, ignoring NAs
+# Función para estratificar y contar valores, ignorando NAs
 stratify_and_count_unique <- function(df, column, strata) {
-  # Eliminate duplicate ids by keeping only one value per id
   unique_df <- df %>% 
     group_by(id) %>% 
-    slice(1) %>%  # Keep the first occurrence for each id
+    slice(1) %>%  # Mantener la primera ocurrencia por id
     ungroup()
-  # Count unique values in each strata
+  
+  # Contar valores únicos en cada estrato
   counts <- sapply(strata, function(range) {
     sum(unique_df[[column]] >= range[1] & unique_df[[column]] < range[2], na.rm = TRUE)
   })
   return(counts)
 }
 
-# Function to calculate Shannon Index
+# Función para calcular el índice de Shannon
 calculate_shannon_index <- function(counts) {
   proportions <- counts / sum(counts)
-  proportions <- proportions[proportions > 0] # Eliminate zero proportions to avoid NaN from log(0)
+  proportions <- proportions[proportions > 0] # Eliminar proporciones cero para evitar NaN de log(0)
   H <- -sum(proportions * log(proportions))
   return(H)
 }
 
-
-# Create lists to store individual dataframes and strata counts
+# Crear listas para almacenar dataframes individuales y conteos de estratos
 individual_dfs <- list()
 strata_counts <- list()
 
-# Create a dataframe to store the Shannon Index for each sample
+# Crear un dataframe para almacenar el índice de Shannon para cada muestra
 IQ_Summary <- data.frame(
   Sample = character(),
-  MQScore_Shannon_Index = character(),
-  Cosine_Score_Shannon_Index = character(),
+  MQScore_Shannon_Index = numeric(),
+  Cosine_Score_Shannon_Index = numeric(),
   stringsAsFactors = FALSE
 )
 
-# For each sample, create an individual dataframe and count the values in each strata
-for(sample_name in unique(df_separated$UniqueFileSources)) {
+# Para cada muestra, crear un dataframe individual y contar los valores en cada estrato
+for (sample_name in unique(df_separated$UniqueFileSources)) {
   individual_df <- df_separated %>%
     filter(UniqueFileSources == sample_name) %>%
     select(id, MQScore, cosine_score)
   
-  # Count values in each strata for MQScore
+  # Contar valores únicos en cada estrato para MQScore
   MQScore_counts <- stratify_and_count_unique(individual_df, "MQScore", strata_MQS)
   
-  # Count values in each strata for cosine_score
+  # Contar valores en cada estrato para cosine_score
   cosine_score_counts <- stratify_and_count(individual_df, "cosine_score", strata_COS)
   
-  # Calculate Shannon Index for MQScore
+  # Calcular el índice de Shannon para MQScore
   MQScore_shannon <- calculate_shannon_index(MQScore_counts)
-  print(MQScore_shannon)
   
-  # Calculate Shannon Index for cosine_score
+  # Calcular el índice de Shannon para cosine_score
   cosine_score_shannon <- calculate_shannon_index(cosine_score_counts)
   
-  # Combine the counts into a single dataframe
+  # Asegurarse de que los nombres de los estratos sean consistentes
   counts_df <- data.frame(
-    Stratum = names(strata),
+    Stratum = names(strata_MQS),
     MQScore_Count = MQScore_counts,
-    Cosine_Score_Count = cosine_score_counts
+    Cosine_Score_Count = cosine_score_counts[1:length(MQScore_counts)]  # Ajustar longitud
   )
   
-  # Add the Shannon Index as the last row
+  # Añadir el índice de Shannon como la última fila
   counts_df <- rbind(counts_df, data.frame(
     Stratum = "Shannon_Index",
     MQScore_Count = MQScore_shannon,
     Cosine_Score_Count = cosine_score_shannon
   ))
   
-  # Store the counts dataframe in the list
+  # Almacenar el dataframe de conteos en la lista
   strata_counts[[sample_name]] <- counts_df
   
-  # Assign the individual dataframe to the list
+  # Asignar el dataframe individual a la lista
   individual_dfs[[sample_name]] <- individual_df
   
-  # Add Shannon Index to the summary dataframe
+  # Añadir el índice de Shannon al dataframe resumen
   IQ_Summary <- rbind(IQ_Summary, data.frame(
     Sample = sample_name,
     MQScore_Shannon_Index = MQScore_shannon,
@@ -193,7 +183,7 @@ for(sample_name in unique(df_separated$UniqueFileSources)) {
 
 
 # Merge the IQ_Summary with df_conteo based on the Sample and Var1 columns
-IQ_Summary <- merge(IQ_Summary, df_conteo, by.x = "Sample", by.y = "Var1", all.x = TRUE)
+IQ_Summary <- merge(IQ_Summary, df_count, by.x = "Sample", by.y = "Var1", all.x = TRUE)
 
 # Rename columns and reorder them
 colnames(IQ_Summary) <- c("Sample", "Hmsq", "Hcos", "Nsna")
@@ -286,7 +276,7 @@ p_summary <- ggplot(IQ_Summary_top, aes(x = Sample)) +
   theme_minimal() +
   theme(legend.position = "bottom", legend.box = "horizontal")
 
-ggsave("IQ_Plot/Parameters_summary.png", plot = p_summary, width = 15, height = 8)
+ggsave("IQ_Plot/1_Parameters_summary.png", plot = p_summary, width = 15, height = 8)
 
 
 # IQ Summary plot
@@ -304,12 +294,50 @@ p_summary <- ggplot(IQ_Summary_top, aes(x = Sample)) +
   theme_minimal() +
   theme(legend.position = "bottom", legend.box = "horizontal")
 
-ggsave("IQ_Plot/IQ_Plot_summary.png", plot = p_summary, width = 15, height = 8)
+ggsave("IQ_Plot/2_IQ_Plot_summary.png", plot = p_summary, width = 15, height = 8)
 
 
 
+##########################NPAtlas db
+# Read the webpage
+url <- "https://www.npatlas.org/download"
+webpage <- read_html(url)
+
+# Extract the link to the Excel file
+excel_link <- webpage %>% html_node("a[href*='xlsx']") %>% html_attr("href")
+
+# Full URL for the Excel file
+full_link <- paste0("https://www.npatlas.org", excel_link)
+
+# Download the file
+download.file(full_link, destfile = "NPAtlas_data.xlsx", mode = "wb")
+
+# Read the Excel file
+NPAtlas_data <- read_excel("NPAtlas_data.xlsx")
+NPAtlas_data= NPAtlas_data %>% select(compound_name, compound_smiles, origin_type, origin_species, genus, compound_inchi)
+
+Nodes_anotados <- df_nodes %>%
+  select(id, Compound_Name, UniqueFileSources, Smiles, INCHI) %>%
+  filter(!is.na(Compound_Name) & Compound_Name != "")
+Nodes_anotados$Smiles=toupper(Nodes_anotados$INCHI)
+
+smiles_unicos <- Nodes_anotados %>% summarise(smiles_unicos = n_distinct(INCHI))
+smiles_unicos
+
+Nodes_NPAtlas <- Nodes_anotados %>%
+  left_join(NPAtlas_data, by = c("INCHI" = "compound_inchi"))%>%
+  filter(!is.na(compound_name))
+
+compuestos_union <- Nodes_NPAtlas %>% summarise(compuestos_union = n_distinct(compound_name))
+compuestos_union
+
+Nodes_NPAtlas <- Nodes_anotados %>%
+  left_join(NPAtlas_data, by = c("Compound_Name" = "compound_name"))
+compuestos_union <- Nodes_NPAtlas %>% summarise(compuestos_union = n_distinct(compound_smiles))
+compuestos_union
 
 
+#### BINi integration
 
 # Define the sample names vector and append the suffix
 vector_nombres <- c(
