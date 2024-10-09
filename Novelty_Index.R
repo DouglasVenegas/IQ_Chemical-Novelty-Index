@@ -469,6 +469,47 @@ IQ_by_strain_Cluster_plot
 ggsave("Data/IQ_Plot/6_IQ_by_strain_Cluster_plot.png", plot = IQ_Cluster_plot, width = 15, height = 8)
 
 
+
+
+
+
+
+
+
+
+
+
+# Summary top 10 lower total_IQ_by_strain
+
+print(IQ_by_strain)
+
+IQ_by_strain_Summary_top <- IQ_by_strain %>%
+  arrange(desc(total_IQ)) %>%
+  slice_head(n = 10) 
+
+
+# IQ_by_strain Summary plot
+IQ_by_strain_Summary_top_plot <- ggplot(IQ_by_strain_Summary_top, aes(x = ATTRIBUTE_strain)) +
+  geom_point(aes(y = total_IQ, color = "IQ"), size = 3) +
+  labs(title = "Top 10 Samples with the Lowest IQ by strain",
+       x = "Sample",
+       y = "IQ") +
+  theme(axis.text.x = element_text(angle = -45, hjust = 1, vjust = 1, size = 8),
+        axis.text.y = element_text(size = 10),
+        axis.title = element_text(size = 12, face = "bold"),
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        legend.title = element_text(size = 12, face = "bold"),
+        legend.text = element_text(size = 10)) +
+  theme_classic() +
+  theme(legend.position = "bottom", legend.box = "horizontal")
+
+IQ_by_strain_Summary_top_plot
+
+ggsave("Data/IQ_Plot/3_IQ_Plot_summary.png", plot = p_summary, width = 15, height = 8)
+
+
+
+
 1
 
 
