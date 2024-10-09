@@ -126,7 +126,7 @@ stratify_and_count <- function(df, column, strata) {
 stratify_and_count_unique <- function(df, column, strata) {
   unique_df <- df %>% 
     group_by(id) %>% 
-    slice(1) %>%  # Mantener la primera ocurrencia por id
+    slice(1) %>%  # Counts only the first occurrence of each unique identifier (id) in the specified column. 
     ungroup()
   
   # count unique values for strata
@@ -166,7 +166,7 @@ for (sample_name in unique(df_separated$UniqueFileSources)) {
   MQScore_counts <- stratify_and_count_unique(individual_df, "MQScore", strata_MQS)
   
   # Count values in each stratum for cosine_score
-  cosine_score_counts <- stratify_and_count(individual_df, "cosine_score", strata_COS)
+  cosine_score_counts <- stratify_and_count(individual_df, "cosine_score", strata_COS)# have to be not unique
   
   # Calculating the Shannon index for MQScore
   MQScore_shannon <- calculate_shannon_index(MQScore_counts)
@@ -469,23 +469,12 @@ IQ_by_strain_Cluster_plot
 ggsave("Data/IQ_Plot/6_IQ_by_strain_Cluster_plot.png", plot = IQ_Cluster_plot, width = 15, height = 8)
 
 
-
-
-
-
-
-
-
-
-
-
 # Summary top 10 lower total_IQ_by_strain
-
-print(IQ_by_strain)
-
+IQ_by_strain= IQ_by_strain %>% select(-Cluster)
+IQ_by_strain$total_IQ <- as.numeric(IQ_by_strain$total_IQ)
 IQ_by_strain_Summary_top <- IQ_by_strain %>%
-  arrange(desc(total_IQ)) %>%
-  slice_head(n = 10) 
+  arrange(total_IQ) %>%
+  head(10)
 
 
 # IQ_by_strain Summary plot
@@ -505,9 +494,34 @@ IQ_by_strain_Summary_top_plot <- ggplot(IQ_by_strain_Summary_top, aes(x = ATTRIB
 
 IQ_by_strain_Summary_top_plot
 
-ggsave("Data/IQ_Plot/3_IQ_Plot_summary.png", plot = p_summary, width = 15, height = 8)
+ggsave("Data/IQ_Plot/7_IQ_by_strain_Plot_summary.png", plot = p_summary, width = 15, height = 8)
+
+# BiNI integration
+# BiNi result
+
+BiNI_results <- read_excel("Data/BiNI_results.xlsx")
+
+IQ_BiNI_by_strain <- merge(IQ_by_strain, BiNI_results, by.x = "ATTRIBUTE_strain", by.y = "Strain")
+
+# IQ-BiNi plot
 
 
+IQ_BiNI_by_strain_plot = ggplot(IQ_BiNI_by_strain, aes(x = ATTRIBUTE_strain)) +
+  geom_point(aes(y = total_IQ, shape = "IQ", color = ATTRIBUTE_strain), size = 3) +    
+  geom_point(aes(y = BiNI, shape = "BiNI", color = ATTRIBUTE_strain), size = 3) +  
+  scale_shape_manual(values = c("IQ" = 16, "BiNI" = 17)) + 
+  scale_color_viridis(discrete = TRUE, option = "D") +  
+  labs(title = "Comparación de IQ y BiNI por Strain y Bacteria",
+       x = "Strain",
+       y = "Valores IQ y BiNI",
+       shape = "Métrica") + 
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))   
+
+IQ_BiNI_by_strain_plot
+
+ggsave("Data/IQ_Plot/4_IQ_BiNI_Plot.png", plot = IQ_BiNI_Plot, width = 15, height = 8)
+write_xlsx(IQ_BiNI, path = "Data/CSV_IQ/2_IQ_BINI.xlsx")
 
 
 1
