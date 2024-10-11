@@ -654,7 +654,7 @@ df_separated_NPAtlas <- BASE_NPAtlas %>%
 MQS_breaks_NPAtlas <- seq(0.01, 1, by = 0.05)
 strata_MQS_NPAtlas <- setNames(
   lapply(seq_along(MQS_breaks_NPAtlas)[-length(MQS_breaks_NPAtlas)], function(i) c(MQS_breaks_NPAtlas[i], MQS_breaks_NPAtlas[i + 1])),
-  paste0(sprintf("%.2f", MQS_breaks_NPAtlas[-length(MQS_breaks)]), "-", sprintf("%.2f", MQS_breaks_NPAtlas[-1])))
+  paste0(sprintf("%.2f", MQS_breaks_NPAtlas[-length(MQS_breaks_NPAtlas)]), "-", sprintf("%.2f", MQS_breaks_NPAtlas[-1])))
 
 # Define strata for cosine score
 cos_breaks_NPAtlas <- seq(0.70, 1.00, by = 0.05)
@@ -711,10 +711,10 @@ for (sample_name in unique(df_separated_NPAtlas$UniqueFileSources)) {
     select(id, MQScore, cosine_score)
   
   # Counting unique values in each stratum for MQScore
-  MQScore_counts_NPAtlas <- stratify_and_count_unique(individual_df_NPAtlas, "MQScore", strata_MQS)
+  MQScore_counts_NPAtlas <- stratify_and_count_unique(individual_df_NPAtlas, "MQScore", strata_MQS_NPAtlas)
   
   # Count values in each stratum for cosine_score
-  cosine_score_counts_NPAtlas <- stratify_and_count(individual_df_NPAtlas, "cosine_score", strata_COS)# have to be not unique
+  cosine_score_counts_NPAtlas <- stratify_and_count(individual_df_NPAtlas, "cosine_score", strata_COS_NPAtlas)# have to be not unique
   
   # Calculating the Shannon index for MQScore
   MQScore_shannon_NPAtlas <- calculate_shannon_index(MQScore_counts_NPAtlas)
@@ -724,9 +724,9 @@ for (sample_name in unique(df_separated_NPAtlas$UniqueFileSources)) {
   
   # Ensure that the strata names are consistent.
   counts_df_NPAtlas <- data.frame(
-    Stratum = names(strata_MQS),
-    MQScore_Count_NPAtlas = MQScore_counts,
-    Cosine_Score_Count_NPAtlas = cosine_score_counts[1:length(MQScore_counts)]  
+    Stratum = names(strata_MQS_NPAtlas),
+    MQScore_Count_NPAtlas = MQScore_counts_NPAtlas,
+    Cosine_Score_Count_NPAtlas = cosine_score_counts_NPAtlas[1:length(MQScore_counts_NPAtlas)]  
   )
   
   # Añadir el índice de Shannon como la última fila
@@ -735,9 +735,9 @@ for (sample_name in unique(df_separated_NPAtlas$UniqueFileSources)) {
     MQScore_Count_NPAtlas = MQScore_shannon_NPAtlas,
     Cosine_Score_Count_NPAtlas = cosine_score_shannon_NPAtlas
   ))
-  
+   
   # Store count dataframe in the list
-  strata_counts[[sample_name]] <- counts_df_NPAtlas
+  strata_counts_NPAtlas[[sample_name]] <- counts_df_NPAtlas
   
   # Assign the individual dataframe to the list
   individual_dfs_NPAtlas[[sample_name]] <- individual_df_NPAtlas
@@ -784,6 +784,238 @@ for(sample_name in names(individual_dfs_NPAtlas)) {
 # Save the updated Shannon Index summary dataframe to a CSV file in the CSV_IQ folder
 write.csv(IQ_Summary_NPAtlas, file = "Data/CSV_IQ_NPAtlas/1_IQ_Summary_NPAtlas.csv", row.names = FALSE)
 
+
+# IQ plot for each sample
+
+# Define the new number of samples per plot
+samples_per_plot_NPAtlas <- 10   # change it as required
+
+# Recalculate the number of plots needed based on the new value
+num_plots_NPAtlas <- ceiling(nrow(IQ_Summary_NPAtlas) / samples_per_plot_NPAtlas)
+
+if (!dir.exists("Data/IQ_Plot_NPAtlas")) {
+  dir.create("Data/IQ_Plot_NPAtlas")
+}
+
+# Plots
+for (i in 1:num_plots_NPAtlas) {
+  # Define the start and end index for the subset of data
+  start_index_NPAtlas <- (i - 1) * samples_per_plot_NPAtlas + 1
+  end_index_NPAtlas <- min(i * samples_per_plot_NPAtlas, nrow(IQ_Summary_NPAtlas))
+  # Subset the data for the current plot
+  subset_data_NPAtlas <- IQ_Summary_NPAtlas[start_index_NPAtlas:end_index_NPAtlas, ]
+  
+  # Replace NA values with 0 in columns
+  subset_data_NPAtlas$Hmsq[is.na(subset_data_NPAtlas$Hmsq)] <- 0
+  subset_data_NPAtlas$Hcos[is.na(subset_data_NPAtlas$Hcos)] <- 0
+  subset_data_NPAtlas$Ans[is.na(subset_data_NPAtlas$Ans)] <- 0
+  
+  # Create the plot
+  p <- ggplot(subset_data_NPAtlas, aes(x = Sample)) +
+    geom_point(aes(y = Hmsq, color = "Hmsq"), size = 3) +
+    geom_point(aes(y = Hcos, color = "Hcos"), size = 3, shape = 17) +
+    geom_point(aes(y = Ans, color = "Ans"), size = 3, shape = 15) +
+    labs(title = paste("IQ Index by Sample", start_index_NPAtlas, "to", end_index_NPAtlas),
+         x = "Sample",
+         y = "IQ Index",
+         color = "Parameters") +
+    theme(axis.text.x = element_text(angle = -45, hjust = 1, vjust = 1, size = 8),
+          axis.text.y = element_text(size = 10),
+          axis.title = element_text(size = 12, face = "bold"),
+          plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+          legend.title = element_text(size = 12, face = "bold"),
+          legend.text = element_text(size = 10)) +
+    scale_color_manual(values = c("Hmsq" = "blue", "Hcos" = "red", "Ans" = "green")) +
+    theme_classic() +
+    theme(legend.position = "bottom", legend.box = "horizontal")
+  
+  
+  # Save the plot to a file in the IQ_Plot folder
+  ggsave(paste0("Data/IQ_Plot_NPAtlas/IQ_Plot_NPAtlas_", i, ".png"), plot = p, width = 15, height = 8)
+}
+
+
+#Clustering plot
+
+IQ_by_sample_NPAtlas=IQ_Summary_NPAtlas %>% select(-Hmsq, -Hcos, -Ans)
+
+Metadata_Cruseman <- read_delim("Data/Metadata_Cruseman.csv", 
+                                delim = ";", escape_double = FALSE, trim_ws = TRUE)
+
+IQ_NPAtlas_w_metadata<- merge(IQ_by_sample_NPAtlas, Metadata_Cruseman, by.x = "Sample", by.y = "filename", all = TRUE)
+
+IQ_NPAtlas_w_metadata <- na.omit(IQ_NPAtlas_w_metadata)
+
+# Escala las variables de interés (IQ)
+IQ_NPAtlas_w_metadata_vector<- scale(IQ_NPAtlas_w_metadata$IQ)
+
+# Apply k-means with 3 cluster (modify as required)
+set.seed(123)  # to reproducibility
+kmeans_result_NPAtlas <- kmeans(IQ_NPAtlas_w_metadata_vector, centers = 10)
+
+# Añadir la columna de clusters al dataframe
+IQ_NPAtlas_w_metadata$Cluster <- as.factor(kmeans_result_NPAtlas$cluster)
+
+# Plot for clusters. Modify ATTRIBUTES
+IQ_NPAtlas_Cluster_plot= ggplot(IQ_NPAtlas_w_metadata, aes(x = Cluster, y = IQ, color = ATTRIBUTE_solvent, shape = ATTRIBUTE_Bacteria)) +
+  geom_jitter(size = 3, width = 0.2, height = 0, alpha = 0.8) +  # Jitter en el eje x
+  labs(title = "IQ by clusters with samples",
+       x = "Clusters",
+       y = "IQ",  
+       color = "ATTRIBUTE_solvent",
+       shape = "ATTRIBUTE_Bacteria") +  # Etiqueta para el shape
+  theme_classic() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) +
+  scale_color_brewer(palette = "Set1")
+
+# Save the plot to a file in the IQ_Plot folder
+ggsave("Data/IQ_Plot_NPAtlas/1_IQ_NPAtlas_Cluster_plot.png", plot = IQ_NPAtlas_Cluster_plot, width = 15, height = 8)
+
+
+# Summary top 10 highest SI
+
+IQ_Summary_top_NPAtlas <- IQ_Summary_NPAtlas %>%
+  arrange(desc(IQ)) %>%
+  slice_head(n = 10) 
+
+# Summary plot inputs
+p_summary_NPAtlas <- ggplot(IQ_Summary_top_NPAtlas, aes(x = Sample)) +
+  geom_point(aes(y = Hmsq, color = "Hmsq"), size = 3) +
+  geom_point(aes(y = Hcos, color = "Hcos"), size = 3, shape = 17) +
+  geom_point(aes(y = Ans, color = "Ans"), size = 3, shape = 15) +
+  labs(title = "Top 10 Samples with the highest IQ parameters",
+       x = "Sample",
+       y = "Value",
+       color = "Parameters") +
+  theme(axis.text.x = element_text(angle = -45, hjust = 1, vjust = 1, size = 8),
+        axis.text.y = element_text(size = 10),
+        axis.title = element_text(size = 12, face = "bold"),
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        legend.title = element_text(size = 12, face = "bold"),
+        legend.text = element_text(size = 10)) +
+  scale_color_manual(values = c("Hmsq" = "blue", "Hcos" = "red", "Ans" = "green")) +
+  theme_classic() +
+  theme(legend.position = "bottom", legend.box = "horizontal")
+
+p_summary_NPAtlas
+ggsave("Data/IQ_Plot_NPAtlas/2_Parameters_summary_NPAtlas.png", plot = p_summary_NPAtlas, width = 15, height = 8)
+
+
+# IQ Summary plot
+p_summary_NPAtlas <- ggplot(IQ_Summary_top_NPAtlas, aes(x = Sample)) +
+  geom_point(aes(y = IQ, color = "IQ"), size = 3) +
+  labs(title = "Top 10 Samples with the Highest IQ",
+       x = "Sample",
+       y = "IQ") +
+  theme(axis.text.x = element_text(angle = -45, hjust = 1, vjust = 1, size = 8),
+        axis.text.y = element_text(size = 10),
+        axis.title = element_text(size = 12, face = "bold"),
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        legend.title = element_text(size = 12, face = "bold"),
+        legend.text = element_text(size = 10)) +
+  theme_classic() +
+  theme(legend.position = "bottom", legend.box = "horizontal")
+
+ggsave("Data/IQ_Plot_NPAtlas/3_IQ_NPAtlas_Plot_summary.png", plot = p_summary_NPAtlas, width = 15, height = 8)
+
+
+# BiNI integration
+
+# Samples with BiNI
+Samples_BiNI <- read_excel("Data/Samples_BiNI.xlsx")
+
+# Filter the data based on the sample names vector
+IQ_filtrated_NPAtlas <- IQ_Summary_NPAtlas %>%
+  filter(Sample %in% Samples_BiNI$filename) %>% 
+  select(-Hmsq, -Hcos, -Ans)
+IQ_filtrated_NPAtlas = merge(IQ_filtrated_NPAtlas, Metadata_Cruseman, by.x = "Sample", by.y = "filename")
+
+# BiNi result
+
+BiNI_results <- read_excel("Data/BiNI_results.xlsx")
+
+
+IQ_BiNI_NPAtlas <- merge(IQ_filtrated_NPAtlas, BiNI_results, by.x = "ATTRIBUTE_strain", by.y = "Strain")
+
+# IQ-BiNi plot
+
+IQ_BiNI_NPAtlas_Plot <- ggplot(IQ_BiNI_NPAtlas, aes(x = ATTRIBUTE_solvent, y = IQ, color = ATTRIBUTE_solvent, shape = ATTRIBUTE_Bacteria)) +
+  geom_point(size = 3) +
+  facet_wrap(~ ATTRIBUTE_strain, scales = "free_y") +
+  geom_hline(data = IQ_BiNI_NPAtlas, aes(yintercept = BiNI), linetype = "dashed", color = "red") +
+  labs(title = "IQ by Strain and Solvent with BiNI value in line",
+       x = "Solvent",
+       y = "IQ") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  ylim(0, 1)
+
+print(IQ_BiNI_NPAtlas_Plot)
+
+ggsave("Data/IQ_Plot_NPAtlas/4_IQ_BiNI_NPAtlas_Plot.png", plot = IQ_BiNI_NPAtlas_Plot, width = 15, height = 8)
+write_xlsx(IQ_BiNI_NPAtlas, path = "Data/CSV_IQ_NPAtlas/2_IQ_BINI_NPAtlas.xlsx")
+
+
+# IQ by strain
+
+IQ_w_metadata <- IQ_w_metadata %>%
+  select(-ATTRIBUTE_solvent, -Cluster)
+IQ_by_strain <- IQ_w_metadata %>%
+  group_by(ATTRIBUTE_strain, ATTRIBUTE_Bacteria) %>%
+  summarise(total_IQ = sum(IQ, na.rm = TRUE)) 
+
+# Save dataframe 
+write.csv(IQ_by_strain, file = "Data/CSV_IQ/3_IQ_by_strain.csv", row.names = FALSE)
+
+#plot IQ by strain
+
+# IQ by strain. Modify ATTRIBUTES
+IQ_by_strain_plot= ggplot(IQ_by_strain, aes(x = ATTRIBUTE_strain, y = total_IQ, color = ATTRIBUTE_Bacteria)) +
+  geom_jitter(size = 3, width = 0.2, height = 0, alpha = 0.8) +  # Jitter en el eje x
+  labs(title = "IQ by strain",
+       x = "Strain",
+       y = "IQ",  
+       color = "ATTRIBUTE_Bacteria") +
+  theme_classic() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) +
+  scale_color_brewer(palette = "Set1")
+
+IQ_by_strain_plot
+
+ggsave("Data/IQ_Plot/5_IQ_by_strain_Plot.png", plot = IQ_by_strain_plot, width = 15, height = 8)
+
+# Clustering plot by strain
+
+IQ_by_strain <- na.omit(IQ_by_strain)
+
+# Scaling
+IQ_by_strain_vector<- scale(IQ_by_strain$total_IQ)
+
+# Apply k-means with 3 cluster (modify as required)
+set.seed(123)  # to reproducibility
+kmeans_result_strain <- kmeans(IQ_by_strain_vector, centers = 10)
+
+# Añadir la columna de clusters al dataframe
+IQ_by_strain$Cluster <- as.factor(kmeans_result_strain$cluster)
+
+# Plot for clusters. Modify ATTRIBUTES
+IQ_by_strain_Cluster_plot= ggplot(IQ_by_strain, aes(x = Cluster, y = total_IQ, color = ATTRIBUTE_Bacteria)) +
+  geom_jitter(size = 3, width = 0.2, height = 0, alpha = 0.8) +  # Jitter en el eje x
+  labs(title = "IQ by clusters with samples",
+       x = "Clusters",
+       y = "IQ",  
+       color = "ATTRIBUTE_Bacteria") + 
+  theme_classic() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) +
+  scale_color_brewer(palette = "Set1")
+
+IQ_by_strain_Cluster_plot
+
+# Save the plot to a file in the IQ_Plot folder
+ggsave("Data/IQ_Plot/6_IQ_by_strain_Cluster_plot.png", plot = IQ_Cluster_plot, width = 15, height = 8)
 
 
 1
