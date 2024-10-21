@@ -3,7 +3,9 @@
 
 if (!require("pacman")) install.packages("pacman") #Installing pacman if not present
 pacman::p_load("RColorBrewer","tidyverse", "readxl", "rvest","dplyr","tidyr","igraph","visNetwork", "readr","ggplot2", "ggraph", "graphTweets", "writexl")
-
+install.packages("rJava")
+install.packages("rcdk")
+install.packages("proxy")
 Sys.getenv("JAVA_HOME")
 Sys.setenv(JAVA_HOME='C:/Program Files/Java/jdk-17')
 library(rJava)
