@@ -2,4 +2,6 @@
 
 ### Description
 
-IQ development focused on prioritizing individuals using three key network metrics: the number if unannotated nodes, the Shannon index (SI) of Match Quality Scores for annotated nodes, and the SI for cosine values measuring the connection between annotated and unannotated nodes.
+IQ is a molecular network-based spectral annotation novelty index developed for prioritizing samples according to the probability of finding novel chemistry using mass spectrometry. IQ uses three key network metrics: Library match score (MQS) for annotated nodes, cosine values between annotated and unannotated nodes (COS), and the proportion of unannotated nodes.
+
+<img src="https://github.com/user-attachments/assets/6d4af1e1-c53a-4c21-b337-3b0e0636477f" width="600">
