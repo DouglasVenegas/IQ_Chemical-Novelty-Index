@@ -3,9 +3,9 @@
 
 if (!require("pacman")) install.packages("pacman") #Installing pacman if not present
 pacman::p_load("RColorBrewer","tidyverse", "readxl", "rvest","dplyr","tidyr","igraph","visNetwork", "readr","ggplot2", "ggraph", "graphTweets", "writexl")
-install.packages("rJava")
-install.packages("rcdk")
-install.packages("proxy")
+#install.packages("rJava")
+#install.packages("rcdk")
+#install.packages("proxy")
 Sys.getenv("JAVA_HOME")
 Sys.setenv(JAVA_HOME='C:/Program Files/Java/jdk-17')
 library(rJava)
@@ -61,7 +61,7 @@ nodes_annotated_strain <- table(score_MQS$ATTRIBUTE_strain)
 nodes_annotated_strain <- as.data.frame(nodes_annotated_strain)
 colnames(nodes_annotated_strain) <- c("ATTRIBUTE_strain", "Count")
 
-#Jump to __ for IQ based on NPAtlas anottations
+#Jump to line 910 for IQ based on NPAtlas anottations
 
 
 ## Define strata for MQScore
@@ -357,27 +357,35 @@ IQ$Hcos <- (IQ$Hcos - min(IQ$Hcos)) / (max(IQ$Hcos) - min(IQ$Hcos))
 IQ$IQ= (IQ$Ans+IQ$Hcos+IQ$Hmqs)/3
 IQ = merge(IQ, Metadata, by.x = "ATTRIBUTE_Strain", by.y = "ATTRIBUTE_strain")
 IQ= IQ %>% select(IQ,Hmqs,Hcos, Ans, ATTRIBUTE_Bacteria, ATTRIBUTE_Strain)
-IQ <- IQ %>%
+IQ_T <- IQ %>%
   distinct()
 
-# Guardar el número de filas únicas en una variable separada
 num_unique_strains <- nrow(IQ)
 
-# IQ plot
-IQ_plot=ggplot(IQ, aes(x = ATTRIBUTE_Bacteria, y = IQ, fill = ATTRIBUTE_Strain)) +
-  geom_bar(stat = "identity", position = position_dodge(width = 0.9), color = "black", width = 0.7, show.legend = FALSE) +  # Crear las barras
-  theme_classic() +  # Tema minimalista
-  labs(x = "Bacteria",
+# Create a custom cadet blue color gradient
+
+# Create the plot with the new matte color palette and adjust the font size of the legend
+IQ_plot = ggplot(IQ, aes(x = reorder(ATTRIBUTE_Strain, -IQ), y = IQ, fill = ATTRIBUTE_Bacteria)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9), color = "Black", width = 0.7, show.legend = TRUE) +  
+  theme_classic() + 
+  labs(x = "Strain",
        y = "IQ",
-       fill = "Strain") +  # Etiquetas
+       fill = "Bacteria") +  # Legend label
   theme(
-    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),  # Estilo del título
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),  # Rotar etiquetas del eje x
-    axis.text.y = element_text(size = 12),  # Ajustar tamaño del texto en el eje y
-    axis.title = element_text(face = "bold"),  # Negrita en los títulos de los ejes
-    panel.grid.major = element_blank(),  # Quitar cuadrícula mayor
-    panel.grid.minor = element_blank()   # Quitar cuadrícula menor
-  )
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),  
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 8),  
+    axis.text.y = element_text(size = 22),
+    axis.title.y = element_text(size = 22),
+    axis.title.x = element_text(size = 14),  
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    legend.text = element_text(size = 22),  
+    legend.title = element_text(size = 22)  
+  )+ scale_fill_viridis_d()
+
+IQ_plot 
+
+
 ggsave("Data/IQ_Plot/1_IQ_Plot.png", plot = IQ_plot, width = 15, height = 8)
 
 # Distribution Plot
@@ -389,20 +397,27 @@ summary_data <- IQ %>%
     .groups = 'drop'                   # Drop grouping structure
   )
 
-# Create Distribution Plot
 Distribution_plot = ggplot() +
   geom_point(data = IQ, aes(x = ATTRIBUTE_Bacteria, y = IQ), 
-             shape = 1, color = "blue", size = 1.5, alpha = 0.6) +  # Individual points
+             shape = 1, color = "blue", size = 1.5, alpha = 0.6) +  # Puntos individuales
   geom_errorbar(data = summary_data, 
                 aes(x = ATTRIBUTE_Bacteria, ymin = mean_IQ - sd_IQ, ymax = mean_IQ + sd_IQ), 
-                width = 0.1, color = "black") +  # Error bars for mean ± SD
+                width = 0.1, color = "black") +  # Barras de error para la media ± SD
   geom_point(data = summary_data, aes(x = ATTRIBUTE_Bacteria, y = mean_IQ), 
-             shape = 1, color = "blue", size = 1) +  # Mean points
+             shape = 1, color = "blue", size = 1) +  # Puntos de media
   labs(
-    x = "Bacteria", 
-    y = "IQ") +  # Axis labels
-  theme_classic()  # Minimalist theme
+    x = "", 
+    y = "IQ") +  # Etiquetas de los ejes
+  theme_classic() +
+  theme(
+    axis.title.x = element_text(size = 14),  
+    axis.title.y = element_text(size = 14),  
+    axis.text.x = element_text(size = 12),    
+    axis.text.y = element_text(size = 12),    
+    axis.line = element_line(size = 1)        
+  ) 
 
+Distribution_plot
 
 # Save the Distribution Plot as a PNG file
 ggsave("Data/IQ_Plot/2_Distribution_plot.png", plot = Distribution_plot, width = 15, height = 8)
@@ -534,20 +549,26 @@ IQ_Summary_top <- IQ %>%
   slice_head(n = 10)
 
 ## IQ top plot
-IQ_top_plot = ggplot(IQ_Summary_top, aes(x = ATTRIBUTE_Bacteria, y = IQ, fill = ATTRIBUTE_Strain)) +
-  geom_bar(stat = "identity", position = position_dodge(width = 0.9), color = "black", width = 0.7, show.legend = FALSE) +  # Create bars
-  theme_classic() +  # Minimalist theme
-  labs(x = "Bacteria",
+
+IQ_top_plot = ggplot(IQ_Summary_top, aes(x = reorder(ATTRIBUTE_Strain, -IQ), y = IQ, fill = ATTRIBUTE_Bacteria)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9), color = "Black", width = 0.7, show.legend = TRUE) +  
+  theme_classic() + 
+  labs(x = "",
        y = "IQ",
-       fill = "Strain") +  # Labels
+       fill = "Bacteria") +  # Legend label
   theme(
-    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),  # Title styling
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),  # Rotate x-axis labels
-    axis.text.y = element_text(size = 12),  # Adjust y-axis text size
-    axis.title = element_text(face = "bold"),  # Bold axis titles
-    panel.grid.major = element_blank(),  # Remove major grid
-    panel.grid.minor = element_blank()   # Remove minor grid
-  )
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),  
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 10),  
+    axis.text.y = element_text(size = 14),  
+    axis.title = element_text(face = "bold"),  
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    legend.text = element_text(size = 14),  
+    legend.title = element_text(size = 14)  
+  )+ scale_fill_viridis_d()
+
+IQ_top_plot 
+
 
 IQ_top_plot
 ## Save the plot
@@ -770,15 +791,18 @@ IQ_BiNI_Plot <- ggplot(IQ_BiNI_long, aes(x = ATTRIBUTE_Strain, y = Value, color 
   ) +
   theme_classic(base_size = 14) +  # Base font size increased for better readability
   theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),  # Rotate x-axis labels for better fit
-    axis.text.y = element_text(size = 10),
-    axis.title.x = element_text(size = 12, margin = margin(t = 10)),  # Add margin to the x label
-    axis.title.y = element_text(size = 12, margin = margin(r = 10))
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 22),  # Rotate x-axis labels for better fit
+    axis.text.y = element_text(size = 22),
+    axis.title.x = element_text(size = 12, margin = margin(t = 22)),  # Add margin to the x label
+    axis.title.y = element_text(size = 12, margin = margin(r = 22)),
+    legend.text = element_text(size = 22),  
+    legend.title = element_text(size = 22)
   ) +
   ylim(0, 1) +
   scale_shape_manual(values = c(16, 17)) +  # Shape 16 for IQ, shape 17 for BiNI
   scale_color_manual(values = palette) +  # Use the defined aquamarine palette
-  geom_hline(yintercept = 0.5, linetype = "dashed", color = "gray")  # Add reference line at 0.5 for better visual guide
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "gray") +
+  scale_color_viridis_d() 
 
 IQ_BiNI_Plot
 
@@ -795,8 +819,8 @@ IQ_BiNI_Plot <- ggplot(IQ_BiNI, aes(x = BiNI, y = IQ, color = ATTRIBUTE_Bacteria
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
   ylim(0, 1) +
   xlim(0, 1) +  # Ensure both axes are on the same scale
-  scale_shape_manual(values = 1:length(unique(IQ_BiNI$ATTRIBUTE_Strain))) +  # Assign different shapes based on the number of strains
-  scale_color_brewer(palette = "Set1")  # Using Set1 from RColorBrewer
+  scale_shape_manual(values = 1:length(unique(IQ_BiNI$ATTRIBUTE_Strain))) +  
+  scale_fill_viridis_d()  
 
 IQ_BiNI_Plot
 
@@ -807,24 +831,24 @@ ggsave("Data/IQ_Plot/11_IQ_BiNI_s_Plot.png", plot = IQ_BiNI_Plot, width = 15, he
 # Define a color palette
 
 palette <- brewer.pal(n = length(unique(IQ_BiNI$ATTRIBUTE_Bacteria)), name = "Set2")
-correlation <- cor(IQ_BiNI$BiNI, IQ_BiNI$IQ, use = "complete.obs")  # Utiliza solo observaciones completas
+correlation <- cor(IQ_BiNI$BiNI, IQ_BiNI$IQ, use = "complete.obs")  
 
-# Crear el gráfico
+
 IQ_BiNI_SPlot <- ggplot(IQ_BiNI, aes(x = IQ, y = BiNI, color = ATTRIBUTE_Bacteria)) +
-  geom_point(size = 4, alpha = 0.7) +  
-  geom_smooth(method = "lm", linetype = "dashed", color = "black", fill = "lightgray") +  # Relleno del intervalo de confianza
+  geom_point(size = 4, alpha = 0.7) +  # Adjusting point transparency and size
+  geom_smooth(method = "lm", linetype = "dashed", color = "black", fill = "lightgray") +  # Confidence interval
   labs(title = "",
        x = "IQ",
        y = "BiNI") +
   theme_classic() +
-  scale_color_manual(values = palette) +
-  theme(axis.text = element_text(size = 12),
-        axis.title = element_text(size = 14),
-        plot.title = element_text(hjust = 0.5, size = 16)) +
+  theme(
+    axis.text = element_text(size = 12),  # Increase axis text size
+    axis.title = element_text(size = 14),  # Increase axis title size
+    plot.title = element_text(hjust = 0.5, size = 16)  # Center and increase plot title size
+  ) +
   annotate("text", x = Inf, y = Inf, label = paste("R: ", round(correlation, 2)), 
-           hjust = 1.1, vjust = 7, size = 3, color = "black")
-
-
+           hjust = 3, vjust = 10, size = 5, color = "black") +
+  scale_color_viridis_d() 
 IQ_BiNI_SPlot
 
 
@@ -879,6 +903,11 @@ plot(IQ_BiNI_G,
      vertex.size = 30, 
      vertex.color = color_vector,  # Use the color vector
      main = "")
+
+
+
+
+
 
 
 # NPAtlas integration
@@ -1297,7 +1326,7 @@ shannon_summary_cos <- shannon_summary_cos %>%
   distinct()
 
 # Annotated nodes per sample
-Proportion_Annotated_nodes= merge(nodes_annotated_strain, Total_nodes, by.x = "ATTRIBUTE_strain", by.y = "ATTRIBUTE_strain")
+Proportion_Annotated_nodes= merge(nodes_annotated_strain_NPAtlas, Total_nodes, by.x = "ATTRIBUTE_strain", by.y = "ATTRIBUTE_strain")
 Proportion_Annotated_nodes$Ans=Proportion_Annotated_nodes$Count.x/Proportion_Annotated_nodes$Count.y
 Proportion_Annotated_nodes= Proportion_Annotated_nodes %>% select(-Count.x, -Count.y)
 
@@ -1316,31 +1345,35 @@ IQ$Hcos <- (IQ$Hcos - min(IQ$Hcos)) / (max(IQ$Hcos) - min(IQ$Hcos))
 IQ$IQ= (IQ$Ans+IQ$Hcos+IQ$Hmqs)/3
 IQ = merge(IQ, Metadata, by.x = "ATTRIBUTE_Strain", by.y = "ATTRIBUTE_strain")
 IQ= IQ %>% select(IQ,Hmqs,Hcos, Ans, ATTRIBUTE_Bacteria, ATTRIBUTE_Strain)
-IQ <- IQ %>%
+IQ_NPA <- IQ %>%
   distinct()
 
 
 # IQ plot
-IQ_plot=ggplot(IQ, aes(x = ATTRIBUTE_Bacteria, y = IQ, fill = ATTRIBUTE_Strain)) +
-  geom_bar(stat = "identity", position = position_dodge(width = 0.9), color = "black", width = 0.7, show.legend = FALSE) +  # Crear las barras
-  theme_classic() +  # Tema minimalista
-  labs(x = "Bacteria",
-       y = "IQ",
-       fill = "Strain") +  # Etiquetas
+IQ_plot = ggplot(IQ_NPA, aes(x = reorder(ATTRIBUTE_Strain, -IQ), y = IQ, fill = ATTRIBUTE_Bacteria)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9), color = "Black", width = 0.7, show.legend = TRUE) +  
+  theme_classic() + 
+  labs(x = "Strain",
+       y = "IQNP",
+       fill = "Bacteria") +  # Legend label
   theme(
-    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),  # Estilo del título
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),  # Rotar etiquetas del eje x
-    axis.text.y = element_text(size = 12),  # Ajustar tamaño del texto en el eje y
-    axis.title = element_text(face = "bold"),  # Negrita en los títulos de los ejes
-    panel.grid.major = element_blank(),  # Quitar cuadrícula mayor
-    panel.grid.minor = element_blank()   # Quitar cuadrícula menor
-  )
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 18),  
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 8),  
+    axis.text.y = element_text(size = 14),
+    axis.title.y = element_text(size = 14),
+    axis.title.x = element_text(size = 14),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    legend.text = element_text(size = 22),  
+    legend.title = element_text(size = 22)  
+  )+ scale_fill_viridis_d()
+
 
 IQ_plot
 ggsave("Data/IQNPA_Plot/1_IQ_Plot.png", plot = IQ_plot, width = 15, height = 8)
 
 # Distribution Plot
-summary_data <- IQ %>%
+summary_data <- IQ_NPA %>%
   group_by(ATTRIBUTE_Bacteria) %>%
   summarise(
     mean_IQ = mean(IQ, na.rm = TRUE),  # Calculate mean IQ
@@ -1348,31 +1381,36 @@ summary_data <- IQ %>%
     .groups = 'drop'                   # Drop grouping structure
   )
 
-# Create Distribution Plot
 Distribution_plot = ggplot() +
   geom_point(data = IQ, aes(x = ATTRIBUTE_Bacteria, y = IQ), 
-             shape = 1, color = "blue", size = 1.5, alpha = 0.6) +  # Individual points
+             shape = 1, color = "blue", size = 1.5, alpha = 0.6) +  # Puntos individuales
   geom_errorbar(data = summary_data, 
                 aes(x = ATTRIBUTE_Bacteria, ymin = mean_IQ - sd_IQ, ymax = mean_IQ + sd_IQ), 
-                width = 0.1, color = "black") +  # Error bars for mean ± SD
+                width = 0.1, color = "black") +  # Barras de error para la media ± SD
   geom_point(data = summary_data, aes(x = ATTRIBUTE_Bacteria, y = mean_IQ), 
-             shape = 1, color = "blue", size = 1) +  # Mean points
+             shape = 1, color = "blue", size = 1) +  # Puntos de media
   labs(
     x = "", 
-    y = "IQ") +  # Axis labels
-  theme_classic()  # Minimalist theme
-
+    y = "IQ") +  # Etiquetas de los ejes
+  theme_classic() +
+  theme(
+    axis.title.x = element_text(size = 14),  
+    axis.title.y = element_text(size = 14),  
+    axis.text.x = element_text(size = 12),    
+    axis.text.y = element_text(size = 12),    
+    axis.line = element_line(size = 1)        
+  ) 
 Distribution_plot
 # Save the Distribution Plot as a PNG file
 ggsave("Data/IQNPA_Plot/2_Distribution_plot.png", plot = Distribution_plot, width = 15, height = 8)
 
 # Create Boxplot
-Boxplot = ggplot(IQ, aes(x = ATTRIBUTE_Bacteria, y = IQ)) +
+Boxplot = ggplot(IQ_NPA, aes(x = ATTRIBUTE_Bacteria, y = IQ)) +
   geom_boxplot(outlier.shape = NA, fill = NA, color = "black", width = 0.1) +  # Boxplot without outliers
   geom_point(aes(color = "Individual Points"), shape = 1, size = 3, alpha = 0.6) +  # Individual points
   scale_color_manual(values = "blue") +  # Manual color for points
   labs(
-    x = "Bacteria", 
+    x = "", 
     y = "IQ") +  # Axis labels
   theme_classic() +  # Minimalist theme
   theme(legend.position = "none")  # Remove legend
@@ -1445,15 +1483,15 @@ library(proxy)
 library(visNetwork)
 
 ## Convert to matrix
-data_matrix <- as.matrix(IQ[, c("Hmqs", "Hcos", "Ans")])
+data_matrix <- as.matrix(IQ_NPA[, c("Hmqs", "Hcos", "Ans")])
 
 ## Calculate the similarity matrix using cosine distance
 similarity_matrix <- 1 - proxy::dist(data_matrix, method = "cosine")
 
 ## Convert to matrix and assign row and column names
 similarity_matrix <- as.matrix(similarity_matrix)
-rownames(similarity_matrix) <- IQ$ATTRIBUTE_Strain
-colnames(similarity_matrix) <- IQ$ATTRIBUTE_Strain
+rownames(similarity_matrix) <- IQ_NPA$ATTRIBUTE_Strain
+colnames(similarity_matrix) <- IQ_NPA$ATTRIBUTE_Strain
 
 ## Define threshold
 threshold <- 0.995
@@ -1471,13 +1509,13 @@ colnames(adjacency_matrix) <- colnames(similarity_matrix)
 g <- graph_from_adjacency_matrix(adjacency_matrix, mode = "undirected", weighted = TRUE, diag = FALSE)
 
 ## Add ATTRIBUTE_Bacteria as a vertex attribute
-V(g)$bacteria <- IQ$ATTRIBUTE_Bacteria
+V(g)$bacteria <- IQ_NPA$ATTRIBUTE_Bacteria
 
 ## Export the graph as a GraphML file
 write_graph(g, file = "Data/IQNPA_Plot/Similarity.graphml", format = "graphml")
 
 ## Create a color vector based on ATTRIBUTE_Bacteria
-IQ$ATTRIBUTE_Bacteria <- as.factor(IQ$ATTRIBUTE_Bacteria)
+IQ_NPA$ATTRIBUTE_Bacteria <- as.factor(IQ$ATTRIBUTE_Bacteria)
 color_vector <- rainbow(length(levels(IQ$ATTRIBUTE_Bacteria)))[as.numeric(IQ$ATTRIBUTE_Bacteria)]
 
 ## Visualize the network
@@ -1491,25 +1529,27 @@ plot(g,
 
 
 # Summary of top 10 lowest IQ
-IQ_Summary_top <- IQ %>%
-  arrange(IQ) %>%
+IQ_Summary_top <- IQ_NPA %>%
+  arrange(IQ_NPA) %>%
   slice_head(n = 10)
 
 ## IQ top plot
-IQ_top_plot = ggplot(IQ_Summary_top, aes(x = ATTRIBUTE_Bacteria, y = IQ, fill = ATTRIBUTE_Strain)) +
-  geom_bar(stat = "identity", position = position_dodge(width = 0.9), color = "black", width = 0.7, show.legend = FALSE) +  # Create bars
-  theme_classic() +  # Minimalist theme
-  labs(x = "Bacteria",
+IQ_top_plot = ggplot(IQ_Summary_top, aes(x = reorder(ATTRIBUTE_Strain, -IQ), y = IQ, fill = ATTRIBUTE_Bacteria)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9), color = "Black", width = 0.7, show.legend = TRUE) +  
+  theme_classic() + 
+  labs(x = "",
        y = "IQ",
-       fill = "Strain") +  # Labels
+       fill = "Bacteria") +  # Legend label
   theme(
-    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),  # Title styling
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),  # Rotate x-axis labels
-    axis.text.y = element_text(size = 12),  # Adjust y-axis text size
-    axis.title = element_text(face = "bold"),  # Bold axis titles
-    panel.grid.major = element_blank(),  # Remove major grid
-    panel.grid.minor = element_blank()   # Remove minor grid
-  )
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),  
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 10),  
+    axis.text.y = element_text(size = 14),  
+    axis.title = element_text(face = "bold"),  
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    legend.text = element_text(size = 14),  
+    legend.title = element_text(size = 14)  
+  )+ scale_fill_viridis_d()
 
 IQ_top_plot
 ## Save the plot
@@ -1690,14 +1730,13 @@ Bb_plot <- ggplot(proportion_counts, aes(x = proportion, y = n_strains_top, size
   scale_color_brewer(palette = "Set2") +  
   labs(x = "Relative proportion (%) [Number of strain in top / total strain]", 
        y = "Proportion in top (%) [Number of strain in top / top (n)]", 
-       size = "Total strains") +  # Eliminamos el título de la leyenda del color
+       size = "Total strains") +  
   theme_classic() +  
   theme(legend.position = "right",  
         axis.title = element_text(size = 12),  
         axis.text = element_text(size = 10),  
         plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) +
-  guides(color = "none")  # Elimina la leyenda de color
-
+  guides(color = "none")  
 Bb_plot
 ggsave("Data/IQNPA_Plot/9_Proportion_Bubble_plot.png", plot = Bb_plot, width = 15, height = 8)
 
@@ -1709,7 +1748,7 @@ ggsave("Data/IQNPA_Plot/9_Proportion_Bubble_plot.png", plot = Bb_plot, width = 1
 BiNI_results <- read_excel("Data/BiNI_results.xlsx")
 
 
-IQ_BiNI <- merge(IQ, BiNI_results, by.x = "ATTRIBUTE_Strain", by.y = "Strain")
+IQ_BiNI <- merge(IQ_NPA, BiNI_results, by.x = "ATTRIBUTE_Strain", by.y = "Strain")
 IQ_BiNI_long <- IQ_BiNI %>% select(ATTRIBUTE_Bacteria, ATTRIBUTE_Strain, IQ, BiNI)
 
 # IQ-BiNi plot
@@ -1734,19 +1773,22 @@ IQ_BiNI_Plot <- ggplot(IQ_BiNI_long, aes(x = ATTRIBUTE_Strain, y = Value, color 
   ) +
   theme_classic(base_size = 14) +  # Base font size increased for better readability
   theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),  # Rotate x-axis labels for better fit
-    axis.text.y = element_text(size = 10),
-    axis.title.x = element_text(size = 12, margin = margin(t = 10)),  # Add margin to the x label
-    axis.title.y = element_text(size = 12, margin = margin(r = 10))
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 22),  # Adjust x-axis labels
+    axis.text.y = element_text(size = 22),
+    axis.title = element_text(size = 22),
+    plot.title = element_text(hjust = 0.5, size = 22),
+    legend.text = element_text(size = 22),  
+    legend.title = element_text(size = 22) 
   ) +
   ylim(0, 1) +
-  scale_shape_manual(values = c(16, 17)) +  # Shape 16 for IQ, shape 17 for BiNI
-  scale_color_manual(values = palette) +  # Use the defined aquamarine palette
-  geom_hline(yintercept = 0.5, linetype = "dashed", color = "gray")  # Add reference line at 0.5 for better visual guide
+  scale_shape_manual(values = c(16, 17)) + 
+  scale_color_manual(values = palette) +  
+  geom_hline(yintercept = 0.5, linetype = "dashed", color = "gray") +
+  scale_color_viridis_d() 
 
 IQ_BiNI_Plot
 
-ggsave("Data/IQNPA_Plot/10_IQ_BiNI_plot.png", plot = IQ_plot, width = 15, height = 8)
+ggsave("Data/IQNPA_Plot/10_IQ_BiNI_plot.png", plot = IQ_BiNI_Plot, width = 15, height = 8)
 
 
 ## Create the scatter plot of BiNI vs IQ for each strain
@@ -1758,9 +1800,9 @@ IQ_BiNI_Plot <- ggplot(IQ_BiNI, aes(x = BiNI, y = IQ, color = ATTRIBUTE_Bacteria
   theme_classic() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
   ylim(0, 1) +
-  xlim(0, 1) +  # Ensure both axes are on the same scale
-  scale_shape_manual(values = 1:length(unique(IQ_BiNI$ATTRIBUTE_Strain))) +  # Assign different shapes based on the number of strains
-  scale_color_brewer(palette = "Set1")  # Using Set1 from RColorBrewer
+  xlim(0, 1) +  
+  scale_shape_manual(values = 1:length(unique(IQ_BiNI$ATTRIBUTE_Strain))) +  
+  scale_fill_viridis_d()  
 
 IQ_BiNI_Plot
 
@@ -1770,22 +1812,27 @@ ggsave("Data/IQNPA_Plot/11_IQ_BiNI_s_Plot.png", plot = IQ_BiNI_Plot, width = 15,
 # Define a color palette
 
 palette <- brewer.pal(n = length(unique(IQ_BiNI$ATTRIBUTE_Bacteria)), name = "Set2")
-correlation <- cor(IQ_BiNI$BiNI, IQ_BiNI$IQ, use = "complete.obs")  # Utiliza solo observaciones completas
+correlation <- cor(IQ_BiNI$IQ, IQ_BiNI$BiNI, use = "complete.obs")
+correlation
 
 # Crear el gráfico
 IQ_BiNI_SPlot <- ggplot(IQ_BiNI, aes(x = IQ, y = BiNI, color = ATTRIBUTE_Bacteria)) +
-  geom_point(size = 4, alpha = 0.7) +  
-  geom_smooth(method = "lm", linetype = "dashed", color = "black", fill = "lightgray") +  # Relleno del intervalo de confianza
+  geom_point(size = 4, alpha = 0.7) +  # Adjusting point transparency and size
+  geom_smooth(method = "lm", linetype = "dashed", color = "black", fill = "lightgray") +  # Confidence interval
   labs(title = "",
-       x = "IQ",
+       x = "IQNP",
        y = "BiNI") +
   theme_classic() +
-  scale_color_manual(values = palette) +
-  theme(axis.text = element_text(size = 12),
-        axis.title = element_text(size = 14),
-        plot.title = element_text(hjust = 0.5, size = 16)) +
+  theme(   axis.text.x = element_text(angle = 45, hjust = 1, size = 22),  # Adjust x-axis labels
+           axis.text.y = element_text(size = 22),
+           axis.title = element_text(size = 22),
+           plot.title = element_text(hjust = 0.5, size = 22),
+           legend.text = element_text(size = 22),  
+           legend.title = element_text(size = 22)  ) +
   annotate("text", x = Inf, y = Inf, label = paste("R: ", round(correlation, 2)), 
-           hjust = 1.1, vjust = 7, size = 3, color = "black")
+           hjust = 3, vjust = 10, size = 5, color = "black") +
+  scale_color_viridis_d() 
+IQ_BiNI_SPlot
 
 
 IQ_BiNI_SPlot
@@ -1841,5 +1888,158 @@ plot(IQ_BiNI_G,
      vertex.size = 30, 
      vertex.color = color_vector,  # Use the color vector
      main = "")
+
+# IQ vs IQNP
+
+# Combine the two data frames by matching on ATTRIBUTE_Strain and ATTRIBUTE_Bacteria
+combined_data <- data.frame(
+  ATTRIBUTE_Strain = IQ$ATTRIBUTE_Strain,
+  ATTRIBUTE_Bacteria = IQ$ATTRIBUTE_Bacteria,
+  IQ = IQ$IQ,
+  IQ_NP = IQ_NPA$IQ
+)
+colnames(IQ_combined)=c("ATTRIBUTE_Bacteria", "IQ", "IQNP")
+# Plotting IQ vs IQ_NP, differentiating by ATTRIBUTE_Bacteria
+
+correlation <- cor(combined_data$IQ, combined_data$IQNP, use = "complete.obs")
+correlation
+IQ_vs_IQ_NP_Plot <- ggplot(combined_data, aes(x = IQ, y = IQNP, color = ATTRIBUTE_Bacteria)) +
+  geom_point(size = 4, alpha = 0.7) +  # Adjusting point transparency and size
+  geom_smooth(method = "lm", linetype = "dashed", color = "black", fill = "lightgray") +  # Confidence interval
+  labs(title = "",
+       x = "IQ",
+       y = "IQNP") +
+  theme_classic() +
+  theme(
+    axis.text = element_text(size = 12),  
+    axis.title = element_text(size = 14),  
+    plot.title = element_text(hjust = 0.5, size = 16)  
+  ) +
+  annotate("text", x = Inf, y = Inf, label = paste("R: ", round(correlation, 2)), 
+           hjust = 3, vjust = 10, size = 5, color = "black") +
+  scale_color_viridis_d() 
+IQ_vs_IQ_NP_Plot
+ggsave("Data/IQNPA_Plot/12_IQ_IQNP_SPlot.png", plot = IQ_vs_IQ_NP_Plot, width = 15, height = 8)
+
+
+# parameters IQ plot
+IQ_long <- IQ %>%
+  pivot_longer(cols = c("Ans", "Hcos", "Hmqs"), 
+               names_to = "Parameter", 
+               values_to = "Value")
+
+IQ_long <- IQ_long %>%
+  group_by(ATTRIBUTE_Strain) %>%
+  mutate(Total = sum(Value)) %>%
+  ungroup() %>%
+  arrange(desc(Total))  
+
+IQ_plot <- ggplot(IQ_long, aes(x = reorder(ATTRIBUTE_Strain, -Total), y = Value, fill = Parameter)) +
+  geom_bar(stat = "identity") +  # Stacked bars
+  labs(x = "Strain", 
+       y = "Input value", 
+       title = "") +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 8),  # Adjust x-axis labels
+    axis.text.y = element_text(size = 14),
+    axis.title = element_text(size = 14),
+    plot.title = element_text(hjust = 0.5, size = 16),
+    legend.text = element_text(size = 14),  
+    legend.title = element_text(size = 14) 
+  ) +
+  scale_fill_brewer(palette = "Set2")  # Use a color palette for different parameters
+
+
+print(IQ_plot)
+ggsave("Data/IQ_Plot/12_IQ_input_plot.png", plot = IQ_plot, width = 15, height = 8)
+
+
+# parameters IQNP plot
+
+IQ_NPA<- IQ_NPA %>%
+  arrange(IQ) %>% 
+  slice_head(n = 20)
+
+IQ_NPA_long <- IQ_NPA %>%
+  pivot_longer(cols = c("Ans", "Hcos", "Hmqs"), 
+               names_to = "Parameter", 
+               values_to = "Value")%>%
+  mutate(Value = Value / 3) 
+
+IQ_NPA_long  <- IQ_NPA_long  %>%
+  group_by(ATTRIBUTE_Strain) %>%
+  mutate(Total = sum(Value)) %>%
+  ungroup() %>%
+  arrange(desc(Total))
+
+IQ_NPA_plot  <- ggplot(IQ_NPA_long , aes(x = reorder(ATTRIBUTE_Strain, -Total), y = Value, fill = Parameter)) +
+  geom_bar(stat = "identity") +  # Stacked bars
+  labs(x = "Strain", 
+       y = "IQNP", 
+       title = "") +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 22),  # Adjust x-axis labels
+    axis.text.y = element_text(size = 22),
+    axis.title = element_text(size = 22),
+    plot.title = element_text(hjust = 0.5, size = 22),
+    legend.text = element_text(size = 22),  
+    legend.title = element_text(size = 22) 
+  ) +
+  scale_fill_brewer(palette = "Set2")  # Use a color palette for different parameters
+
+
+print(IQ_NPA_plot)
+ggsave("Data/IQNPA_Plot/12_IQNP_input_plot.png", plot = IQ_NPA_plot, width = 15, height = 8)
+
+
+# IQ and IQ_NPS distribution
+
+# Combine the two data frames into one for easier plotting
+IQ_combined <- IQ_T %>%
+  mutate(Source = "IQ") %>%  # Add a column to indicate the source
+  select(ATTRIBUTE_Bacteria, IQ, Source) %>%
+  bind_rows(IQ_NPA %>% mutate(Source = "IQNP") %>% select(ATTRIBUTE_Bacteria, IQ, Source))
+colnames(IQ_combined)<-c("ATTRIBUTE_Bacteria", "IQ", "Index")
+
+
+# Calculate summary statistics for both IQ and IQ_NPA
+summary_data <- IQ_combined %>%
+  group_by(Index, ATTRIBUTE_Bacteria) %>%
+  summarise(
+    mean_IQ = mean(IQ, na.rm = TRUE),  # Calculate mean IQ
+    sd_IQ = sd(IQ, na.rm = TRUE),      # Calculate standard deviation of IQ
+    .groups = 'drop'                   # Drop grouping structure
+  )
+
+# Distribution Plot
+
+Distribution_plot = ggplot(IQ_combined, aes(x = ATTRIBUTE_Bacteria, y = IQ, fill = Index)) +
+  geom_boxplot(alpha = 0.7, position = position_dodge(width = 0.8)) +  
+  labs(
+    x = "", 
+    y = "",
+    fill="Index") + 
+  theme_classic() +
+  theme(
+    axis.title.x = element_text(size = 22, face = "bold"), 
+    axis.title.y = element_text(size = 22, face = "bold"),  
+    axis.text.x = element_text(size = 22, angle = 0, hjust = 1),  
+    axis.text.y = element_text(size = 22), 
+    axis.line = element_line(size = 1), 
+    legend.title = element_text(size = 22),  
+    legend.text = element_text(size = 22),  
+    strip.text = element_text(size = 16, face = "bold"),  
+    strip.background = element_rect(fill = "WHITE", color = "black"), 
+    plot.title = element_text(hjust = 0.5, size = 18)  
+  ) +
+  scale_fill_manual(values = c("IQ" = "#008B8B", "IQNP" = "#A52A2A")) 
+
+  # Print the plot
+print(Distribution_plot)
+
+ggsave("Data/IQNPA_Plot/14_IQ_IQNP_BOXPLOT_plot.png", plot = Distribution_plot, width = 15, height = 8)
+
 
 
