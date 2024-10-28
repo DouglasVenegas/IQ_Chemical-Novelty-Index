@@ -8,4 +8,4 @@ IQ is a molecular network-based spectral annotation novelty index developed for 
 
 ### Inputs
 
-All the R script needs is the .graphML file and the metadata.csv with the columns filenmae, ATTRIBUTE_Strain and ATTRIBUTE_Bacteria.
+All the R script needs is the .graphML file and the metadata.csv with the columns filename, ATTRIBUTE_Strain and ATTRIBUTE_Bacteria.
