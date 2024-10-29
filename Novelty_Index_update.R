@@ -1,16 +1,20 @@
+#Run the script to line 910 for an index based on your annotation library or run 
+#the script to line 64 and jump to line 910 for IQ based on NPAtlas annotations.
 
 # Packages instalation
 
-if (!require("pacman")) install.packages("pacman") #Installing pacman if not present
-pacman::p_load("RColorBrewer","tidyverse", "readxl", "rvest","dplyr","tidyr","igraph","visNetwork", "readr","ggplot2", "ggraph", "graphTweets", "writexl")
-#install.packages("rJava")
-#install.packages("rcdk")
-#install.packages("proxy")
-Sys.getenv("JAVA_HOME")
-Sys.setenv(JAVA_HOME='C:/Program Files/Java/jdk-17')
-library(rJava)
-library(rcdk)
-library(httr)
+# Load or install pacman to streamline package management
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load("RColorBrewer", "tidyverse", "readxl", "rvest", "dplyr", "tidyr", "igraph", "visNetwork", 
+               "readr", "ggplot2", "ggraph", "graphTweets", "writexl", "rJava", "rcdk", "proxy", "httr")
+
+# Set JAVA_HOME environment variable for rJava
+Sys.setenv(JAVA_HOME = 'C:/Program Files/Java/jdk-17')
+
+# Load network from a GraphML file. Change the file name as necessary
+graphml <- read_graph("Data/network_Crusemann.graphml", format = "graphml")
+Metadata <- read_delim("Data/Metadata_Cruseman.csv", 
+                       delim = ";", escape_double = FALSE, trim_ws = TRUE)
 
 # List of directories to create
 Dirs <- c("Data/CSV_IQ", "Data/IQ_Plot","Data/CSV_IQNPA", "Data/IQNPA_Plot")
@@ -21,11 +25,6 @@ for (dir in Dirs) {
     dir.create(dir, recursive = TRUE)
   }
 }
-
-# Load network from a GraphML file. Change the file name as necessary
-graphml <- read_graph("Data/network_Crusemann.graphml", format = "graphml")
-Metadata <- read_delim("Data/Metadata_Cruseman.csv", 
-                       delim = ";", escape_double = FALSE, trim_ws = TRUE)
 
 # Get node and edge data from the graph
 if (is_igraph(graphml)) {
@@ -331,7 +330,7 @@ for (strain in strains) {
   
     write.csv(df_strata_counts, file = paste0("Data/CSV_IQ/", df_name, "_SI_COS.csv"), row.names = FALSE)
   } else {
-    warning(paste("El dataframe", df_name, "no existe."))
+    warning(paste("The dataframe", df_name, "dont exist."))
   }
 }
 write.csv(shannon_summary_cos, file = "Data/CSV_IQ/1_COS_shannon_index_summary.csv", row.names = FALSE)
@@ -362,9 +361,8 @@ IQ_T <- IQ %>%
 
 num_unique_strains <- nrow(IQ)
 
-# Create a custom cadet blue color gradient
 
-# Create the plot with the new matte color palette and adjust the font size of the legend
+# Plot IQ by strain
 IQ_plot = ggplot(IQ, aes(x = reorder(ATTRIBUTE_Strain, -IQ), y = IQ, fill = ATTRIBUTE_Bacteria)) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.9), color = "Black", width = 0.7, show.legend = TRUE) +  
   theme_classic() + 
@@ -424,14 +422,14 @@ ggsave("Data/IQ_Plot/2_Distribution_plot.png", plot = Distribution_plot, width =
 
 # Create Boxplot
 Boxplot = ggplot(IQ, aes(x = ATTRIBUTE_Bacteria, y = IQ)) +
-  geom_boxplot(outlier.shape = NA, fill = NA, color = "black", width = 0.1) +  # Boxplot without outliers
-  geom_point(aes(color = "Individual Points"), shape = 1, size = 3, alpha = 0.6) +  # Individual points
-  scale_color_manual(values = "blue") +  # Manual color for points
+  geom_boxplot(outlier.shape = NA, fill = NA, color = "black", width = 0.1) + 
+  geom_point(aes(color = "Individual Points"), shape = 1, size = 3, alpha = 0.6) +  
+  scale_color_manual(values = "blue") +  
   labs(
     x = "Bacteria", 
-    y = "IQ") +  # Axis labels
-  theme_classic() +  # Minimalist theme
-  theme(legend.position = "none")  # Remove legend
+    y = "IQ") + 
+  theme_classic() +  
+  theme(legend.position = "none")  
 
 # Save the Boxplot as a PNG file
 ggsave("Data/IQ_Plot/3_Boxplot.png", plot = Boxplot, width = 15, height = 8)
@@ -493,10 +491,6 @@ ggsave("Data/IQ_Plot/4_Heatmap.png", plot = Heatmap, width = 15, height = 8)
 
 
 # Network Analysis
-library(igraph)
-library(ggraph)
-library(proxy)
-library(visNetwork)
 
 ## Convert to matrix
 data_matrix <- as.matrix(IQ[, c("Hmqs", "Hcos", "Ans")])
@@ -544,7 +538,7 @@ plot(g,
      main = "")
 
 # Summary of top 10 lowest IQ
-IQ_Summary_top <- IQ %>%
+IQ_Summary_top <- IQ_T %>%
   arrange(IQ) %>%
   slice_head(n = 10)
 
@@ -569,8 +563,6 @@ IQ_top_plot = ggplot(IQ_Summary_top, aes(x = reorder(ATTRIBUTE_Strain, -IQ), y =
 
 IQ_top_plot 
 
-
-IQ_top_plot
 ## Save the plot
 ggsave("Data/IQ_Plot/5_IQ_top_Plot.png", plot = IQ_top_plot, width = 15, height = 8)
 
@@ -709,56 +701,6 @@ plot(g,
      vertex.color = color_vector,  # Use the color vector
      main = "")
 
-# Proportions plot
-
-# Count how many ATTRIBUTE_strain there are for each ATTRIBUTE_Bacteria in the original dataframe
-strain_count_per_bacteria <- Metadata %>%
-  group_by(ATTRIBUTE_Bacteria) %>%
-  summarise(n_strains = n_distinct(ATTRIBUTE_strain))
-
-# Count how many ATTRIBUTE_strain there are for each ATTRIBUTE_Bacteria in the top dataframe
-strain_count_per_bacteria_top <- IQ_Summary_top %>%
-  group_by(ATTRIBUTE_Bacteria) %>%
-  summarise(n_strains_top = n_distinct(ATTRIBUTE_Strain))
-
-# Join both dataframes to calculate the proportion
-proportion_counts <- strain_count_per_bacteria %>%
-  left_join(strain_count_per_bacteria_top, by = "ATTRIBUTE_Bacteria") %>%
-  mutate(n_strains_top = replace_na(n_strains_top, 0),  # Replace NA with 0
-         proportion = n_strains_top / n_strains * 100)
-proportion_counts$n_strain_top_proportion<- proportion_counts$n_strains_top/10*100
-
-# Plot the proportions
-PPlot<- ggplot(proportion_counts, aes(x = reorder(ATTRIBUTE_Bacteria, -proportion), y = proportion, fill = proportion)) +
-  geom_bar(stat = "identity") +
-  scale_fill_gradient(low = "lightblue", high = "cadetblue") + 
-  labs(
-    x = "",
-    y = "Strain (%)") +
-  theme_classic() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
-        axis.text.y = element_text(size = 8))
-
-ggsave("Data/IQ_Plot/8_Proportion_plot.png", plot = PPlot, width = 15, height = 8)
-
-
-Bb_plot <- ggplot(proportion_counts, aes(x = proportion, y = n_strains_top, size = n_strains, color = ATTRIBUTE_Bacteria, label = ATTRIBUTE_Bacteria)) +
-  geom_point(alpha = 0.7) + 
-  geom_text(vjust = -2, hjust = 0.5, check_overlap = TRUE, size = 3) +  
-  scale_size_continuous(range = c(3, 10)) +  
-  scale_color_brewer(palette = "Set2") +  
-  labs(x = "Relative proportion (%) [Number of strain in top / total strain]", 
-       y = "Proportion in top (%) [Number of strain in top / top (n)]", 
-       size = "Total strains") +  # Eliminamos el título de la leyenda del color
-  theme_classic() +  
-  theme(legend.position = "right",  
-        axis.title = element_text(size = 12),  
-        axis.text = element_text(size = 10),  
-        plot.title = element_text(hjust = 0.5, size = 14, face = "bold")) +
-  guides(color = "none")  # Elimina la leyenda de color
-
-ggsave("Data/IQ_Plot/9_Proportion_Bubble_plot.png", plot = Bb_plot, width = 15, height = 8)
-
 # Bini integration
 
 # BiNi result
@@ -776,37 +718,6 @@ IQ_BiNI_long <- IQ_BiNI_long %>%
     names_to = "Parameter",    
     values_to = "Value"        
   )
-
-# Create a custom cadet blue color gradient
-palette <- colorRampPalette(c("#5F9EA0", "#4682B4", "#2F4F4F"))(length(unique(IQ_BiNI_long$ATTRIBUTE_Bacteria)))
-
-# Create the plot with dynamically generated aquamarine colors
-## Create the plot
-IQ_BiNI_Plot <- ggplot(IQ_BiNI_long, aes(x = ATTRIBUTE_Strain, y = Value, color = ATTRIBUTE_Bacteria, shape = Parameter)) +
-  geom_point(size = 3, alpha = 0.8) +  # Add transparency for better overlap handling
-  labs(
-    title = "",
-    x = "",
-    y = ""
-  ) +
-  theme_classic(base_size = 14) +  # Base font size increased for better readability
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 22),  # Rotate x-axis labels for better fit
-    axis.text.y = element_text(size = 22),
-    axis.title.x = element_text(size = 12, margin = margin(t = 22)),  # Add margin to the x label
-    axis.title.y = element_text(size = 12, margin = margin(r = 22)),
-    legend.text = element_text(size = 22),  
-    legend.title = element_text(size = 22)
-  ) +
-  ylim(0, 1) +
-  scale_shape_manual(values = c(16, 17)) +  # Shape 16 for IQ, shape 17 for BiNI
-  scale_color_manual(values = palette) +  # Use the defined aquamarine palette
-  geom_hline(yintercept = 0.5, linetype = "dashed", color = "gray") +
-  scale_color_viridis_d() 
-
-IQ_BiNI_Plot
-
-ggsave("Data/IQ_Plot/10_IQ_BiNI_plot.png", plot = IQ_BiNI_Plot, width = 15, height = 8)
 
 
 ## Create the scatter plot of BiNI vs IQ for each strain
@@ -932,7 +843,7 @@ Total_nodes <- table(Total_nodes_per_strain$ATTRIBUTE_strain)
 Total_nodes <- as.data.frame(Total_nodes)
 colnames(Total_nodes) <- c("ATTRIBUTE_strain", "Count")
 
-
+#Load NPAtlas data
 NPAtlas_data <- read_excel("Data/NPAtlas_data.xlsx")
 NPAtlas_data= NPAtlas_data %>% select(compound_name, compound_inchi, compound_smiles, origin_type, genus, origin_species)
 
@@ -1765,13 +1676,13 @@ palette <- colorRampPalette(c("#5F9EA0", "#4682B4", "#2F4F4F"))(length(unique(IQ
 # Create the plot with dynamically generated aquamarine colors
 ## Create the plot
 IQ_BiNI_Plot <- ggplot(IQ_BiNI_long, aes(x = ATTRIBUTE_Strain, y = Value, color = ATTRIBUTE_Bacteria, shape = Parameter)) +
-  geom_point(size = 3, alpha = 0.8) +  # Add transparency for better overlap handling
+  geom_point(size = 6, alpha = 0.8) +  # Add transparency for better overlap handling
   labs(
     title = "",
     x = "",
     y = ""
   ) +
-  theme_classic(base_size = 14) +  # Base font size increased for better readability
+  theme_classic(base_size = 25) +  # Base font size increased for better readability
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1, size = 22),  # Adjust x-axis labels
     axis.text.y = element_text(size = 22),
