@@ -2469,41 +2469,6 @@ distribution</h3>
 </div>
 </div>
 </div>
-<div id="npatlas-integration" class="section level1" number="11">
-<h1><span class="header-section-number">11</span> NPAtlas
-integration</h1>
-<div id="prepate-data" class="section level2" number="11.1">
-<h2><span class="header-section-number">11.1</span> Prepate data</h2>
-<div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" tabindex="-1"></a><span class="do">## Calculate total nodes per sample</span></span>
-<span id="cb33-2"><a href="#cb33-2" tabindex="-1"></a>Total_nodes_per_sample <span class="ot">&lt;-</span> df_nodes <span class="sc">%&gt;%</span></span>
-<span id="cb33-3"><a href="#cb33-3" tabindex="-1"></a>  <span class="fu">select</span>(id, UniqueFileSources, MQScore) <span class="sc">%&gt;%</span> </span>
-<span id="cb33-4"><a href="#cb33-4" tabindex="-1"></a>  <span class="fu">separate_rows</span>(UniqueFileSources, <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\\</span><span class="st">|&quot;</span>) <span class="sc">%&gt;%</span>  </span>
-<span id="cb33-5"><a href="#cb33-5" tabindex="-1"></a>  <span class="fu">group_by</span>(UniqueFileSources)</span>
-<span id="cb33-6"><a href="#cb33-6" tabindex="-1"></a></span>
-<span id="cb33-7"><a href="#cb33-7" tabindex="-1"></a><span class="co"># Merge with metadata to get strain information</span></span>
-<span id="cb33-8"><a href="#cb33-8" tabindex="-1"></a>Total_nodes_per_strain <span class="ot">&lt;-</span> <span class="fu">merge</span>(Total_nodes_per_sample, Metadata, </span>
-<span id="cb33-9"><a href="#cb33-9" tabindex="-1"></a>                                <span class="at">by.x =</span> <span class="st">&quot;UniqueFileSources&quot;</span>, <span class="at">by.y =</span> <span class="st">&quot;filename&quot;</span>, <span class="at">all.x =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb33-10"><a href="#cb33-10" tabindex="-1"></a></span>
-<span id="cb33-11"><a href="#cb33-11" tabindex="-1"></a><span class="co"># Select relevant columns for analysis</span></span>
-<span id="cb33-12"><a href="#cb33-12" tabindex="-1"></a>Total_nodes_per_strain <span class="ot">&lt;-</span> Total_nodes_per_strain <span class="sc">%&gt;%</span></span>
-<span id="cb33-13"><a href="#cb33-13" tabindex="-1"></a>  <span class="fu">select</span>(id, ATTRIBUTE_strain, MQScore)</span>
-<span id="cb33-14"><a href="#cb33-14" tabindex="-1"></a></span>
-<span id="cb33-15"><a href="#cb33-15" tabindex="-1"></a><span class="co"># Count total nodes per strain</span></span>
-<span id="cb33-16"><a href="#cb33-16" tabindex="-1"></a>Total_nodes <span class="ot">&lt;-</span> <span class="fu">table</span>(Total_nodes_per_strain<span class="sc">$</span>ATTRIBUTE_strain)</span>
-<span id="cb33-17"><a href="#cb33-17" tabindex="-1"></a>Total_nodes <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(Total_nodes)</span>
-<span id="cb33-18"><a href="#cb33-18" tabindex="-1"></a><span class="fu">colnames</span>(Total_nodes) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;ATTRIBUTE_strain&quot;</span>, <span class="st">&quot;Count&quot;</span>)</span>
-<span id="cb33-19"><a href="#cb33-19" tabindex="-1"></a></span>
-<span id="cb33-20"><a href="#cb33-20" tabindex="-1"></a><span class="co"># Load NPAtlas data</span></span>
-<span id="cb33-21"><a href="#cb33-21" tabindex="-1"></a>NPAtlas_data <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(<span class="st">&quot;Data/NPAtlas_data.xlsx&quot;</span>)</span>
-<span id="cb33-22"><a href="#cb33-22" tabindex="-1"></a>NPAtlas_data<span class="ot">=</span> NPAtlas_data <span class="sc">%&gt;%</span> <span class="fu">select</span>(compound_name, compound_inchi, compound_smiles, origin_type, genus, origin_species)</span>
-<span id="cb33-23"><a href="#cb33-23" tabindex="-1"></a></span>
-<span id="cb33-24"><a href="#cb33-24" tabindex="-1"></a></span>
-<span id="cb33-25"><a href="#cb33-25" tabindex="-1"></a><span class="co"># Extract index inputs</span></span>
-<span id="cb33-26"><a href="#cb33-26" tabindex="-1"></a>score_MQS <span class="ot">&lt;-</span> df_nodes <span class="sc">%&gt;%</span></span>
-<span id="cb33-27"><a href="#cb33-27" tabindex="-1"></a>  <span class="fu">select</span>(id, MQScore, UniqueFileSources, Smiles, INCHI, Compound_Name) <span class="sc">%&gt;%</span></span>
-<span id="cb33-28"><a href="#cb33-28" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(MQScore) <span class="sc">&amp;</span> MQScore <span class="sc">!=</span> <span class="st">&quot;&quot;</span>) <span class="co"># Extract MSQ and remove NAs</span></span></code></pre></div>
-</div>
-</div>
 
 
 
