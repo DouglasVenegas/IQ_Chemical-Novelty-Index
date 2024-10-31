@@ -38,7 +38,7 @@ Load or install pacman to streamline package management
 
 ```{r}
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load("RColorBrewer", "tidyverse", "readxl", "rvest", "dplyr", "tidyr", "igraph", "visNetwork", "readr", "ggplot2", "ggraph", "graphTweets", "writexl", "rJava", "rcdk", "proxy", "httr")
+pacman::p_load("RColorBrewer", "tidyverse", "readxl", "rvest", "dplyr", "tidyr", "igraph", "visNetwork", "readr", "ggplot2", "ggraph", "graphTweets", "writexl", "proxy", "httr")
 # Set JAVA_HOME environment variable for rJava
 Sys.setenv(JAVA_HOME = 'C:/Program Files/Java/jdk-17')
 
@@ -926,65 +926,5 @@ score_MQS <- df_nodes %>%
 
 ```
 
-## canonizise smiles
-```{r}
-NPAtlas_data$Canonical_Smiles <- sapply(NPAtlas_data$compound_smiles, function(smiles) {
-  mol <- parse.smiles(smiles)[[1]]
-  get.smiles(mol)
-})
-NPAtlas_data= NPAtlas_data %>% select(-compound_smiles)
 
-score_MQS$Canonical_Smiles= sapply(score_MQS$Smiles, function(smiles){
-  mol <- parse.smiles(smiles)
-  if (is.null(mol[[1]])) {
-    return(NA)  
-  } else {
-    return(get.smiles(mol[[1]]))
-  }
-})
-
-score_MQS= score_MQS %>% select(-Smiles)
-```
-
-## get NPAtlas anotations
-
-```{r}
-
-# get NPAtlas anotations
-
-#By smiles
-MQS_score_NPAtlas_smiles <- left_join(score_MQS, NPAtlas_data, by = "Canonical_Smiles", 
-                                      relationship = "many-to-many")%>% filter(!is.na(origin_type))
-# By inchi
-MQS_score_NPAtlas_inchi <- left_join(score_MQS, NPAtlas_data, 
-                                     by = c("INCHI" = "compound_inchi"), 
-                                     relationship = "many-to-many") %>%
-  filter(!is.na(origin_type))
-
-#By name
-MQS_score_NPAtlas_name <- left_join(score_MQS, NPAtlas_data, 
-                                    by = c("Compound_Name" = "compound_name"), 
-                                    relationship = "many-to-many") %>%
-  filter(!is.na(origin_type))
-
-# COMBINE
-MQS_score_NPAtlas <- bind_rows(MQS_score_NPAtlas_smiles, MQS_score_NPAtlas_inchi, MQS_score_NPAtlas_name) %>% 
-  distinct(id, .keep_all = TRUE) %>%
-  select(id, MQScore, UniqueFileSources)  %>% 
-  separate_rows(UniqueFileSources, sep = "\\|") %>%  
-  group_by(UniqueFileSources)
-
-MQS_score_NPAtlas<-merge(MQS_score_NPAtlas, Metadata, 
-                         by.x = "UniqueFileSources", by.y = "filename", all.x = TRUE)
-
-MQS_score_NPAtlas <- MQS_score_NPAtlas %>%
-  select(id, MQScore, ATTRIBUTE_strain) %>%
-  filter(!is.na(ATTRIBUTE_strain))
-
-# Count nodes with annotated strain information
-nodes_annotated_strain_NPAtlas <- table(MQS_score_NPAtlas$ATTRIBUTE_strain)
-nodes_annotated_strain_NPAtlas <- as.data.frame(nodes_annotated_strain_NPAtlas)
-colnames(nodes_annotated_strain_NPAtlas) <- c("ATTRIBUTE_strain", "Count")
-
-```
 
