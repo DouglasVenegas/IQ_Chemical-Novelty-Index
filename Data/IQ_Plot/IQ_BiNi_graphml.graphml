@@ -5,24 +5,19 @@
          http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
 <!-- Created by igraph -->
   <key id="v_name" for="node" attr.name="name" attr.type="string"/>
-  <key id="v_bacteria" for="node" attr.name="bacteria" attr.type="string"/>
   <key id="e_weight" for="edge" attr.name="weight" attr.type="double"/>
   <graph id="G" edgedefault="undirected">
     <node id="n0">
-      <data key="v_name">2</data>
-      <data key="v_bacteria">Upala</data>
+      <data key="v_name">1</data>
     </node>
     <node id="n1">
-      <data key="v_name">Control</data>
-      <data key="v_bacteria">Control</data>
+      <data key="v_name">2</data>
     </node>
     <node id="n2">
-      <data key="v_name">1</data>
-      <data key="v_bacteria">Upala</data>
+      <data key="v_name">3</data>
     </node>
     <node id="n3">
-      <data key="v_name">171</data>
-      <data key="v_bacteria">Rhodococcus</data>
+      <data key="v_name">4</data>
     </node>
     <edge source="n0" target="n1">
       <data key="e_weight">1</data>
