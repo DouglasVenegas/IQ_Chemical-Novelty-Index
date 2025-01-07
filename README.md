@@ -14,6 +14,4 @@ All the R script needs is the .graphML file and the metadata.csv with the column
 
 GESIS
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/DouglasVenegas/IQ_Chemical-Novelty-Index/master?labpath=IQ_index.ipynb)
-.. image:: https://mybinder.org/badge_logo.svg
- :target: https://mybinder.org/v2/gh/DouglasVenegas/IQ_Chemical-Novelty-Index/master?labpath=IQ_index.ipynb
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/DouglasVenegas/IQ_Chemical-Novelty-Index/HEAD?labpath=IQ_index.ipynb)
