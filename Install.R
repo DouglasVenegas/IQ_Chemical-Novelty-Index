@@ -1,18 +1,15 @@
-if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman")
-pacman::p_load(
-  RColorBrewer, 
-  tidyverse, 
-  readxl, 
-  rvest, 
-  dplyr, 
-  tidyr, 
-  igraph, 
-  visNetwork, 
-  readr, 
-  ggplot2, 
-  ggraph, 
-  graphTweets, 
-  writexl, 
-  httr, 
-  proxy
-)
+install.packages("RcolorBrewer")
+install.packages("tidyverse")
+install.packages("readxl")
+install.packages("rvest")
+install.packages("dplyr")
+install.packages("tidyr")
+install.packages("igraph")
+install.packages("visNetwork")
+install.packages("readr")
+install.packages("ggplot2")
+install.packages("ggraph")
+install.packages("graphTweets")
+install.packages("writexl")
+install.packages("httr")
+install.packages("proxy")
