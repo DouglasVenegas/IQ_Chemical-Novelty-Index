@@ -1,3 +1,5 @@
+install.packages("IRkernel")
+IRkernel::installspec(user = FALSE)
 install.packages("RcolorBrewer")
 install.packages("tidyverse")
 install.packages("readxl")
