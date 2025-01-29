@@ -10,8 +10,4 @@ IQ is a molecular network-based spectral annotation novelty index developed for 
 
 All the R script needs is the .graphML file and the metadata.csv with the columns filename, ATTRIBUTE_Strain and ATTRIBUTE_Bacteria.
 
-https://notebooks.gesis.org/binder/v2/gh/DouglasVenegas/IQ_Chemical-Novelty-Index/tree/main/HEAD
-
-https://mybinder.org/v2/gh/DouglasVenegas/IQ_Chemical-Novelty-Index/main
-
-[![Binder](https://notebooks.gesis.org/binder/badge_logo.svg)](https://notebooks.gesis.org/binder/v2/gh/DouglasVenegas/IQ_Chemical-Novelty-Index/main)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/DouglasVenegas/IQ_Chemical-Novelty-Index/main)
