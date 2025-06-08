@@ -1,5 +1,5 @@
 # 0- Loading packages
-install.packages(c("readr","igraph", "devtools","tidyr", "ggplot2", "dplyr","readxl", "rcdk"))
+#install.packages(c("readr","igraph", "devtools","tidyr", "ggplot2", "dplyr","readxl", "rcdk"))
 library(devtools)
 library(igraph)
 library(readr)
